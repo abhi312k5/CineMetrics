@@ -399,8 +399,13 @@ server <- function(input, output, session) {
   })
   output$p_long_tail <- renderPlotly({
     d <- movies[order(-n_ratings)][, rank := .I]
-    pl(ggplot(d, aes(rank, n_ratings, text = title)) + geom_area(fill = COL$orange, alpha = .7) +
-         scale_y_log10() + labs(x = "Movie rank", y = "Ratings (log)") + theme_cine(), "text")
+    pl(ggplot(d, aes(rank, n_ratings)) +
+         geom_line(colour = COL$orange, linewidth = 1) +
+         geom_point(aes(text = paste0(title, "<br>Rank: ", rank,
+                                      "<br>Ratings: ", n_ratings)),
+                    colour = COL$orange, alpha = .35, size = 1) +
+         scale_y_log10() +
+         labs(x = "Movie rank", y = "Ratings (log)") + theme_cine(), "text")
   })
 
   # ----- Genres -----
@@ -482,8 +487,12 @@ server <- function(input, output, session) {
   output$p_year_avg <- renderPlotly({
     d <- merge(ratings[, .(movieId, rating)], movies[, .(movieId, year)], by = "movieId")
     d <- d[!is.na(year) & year >= 1930, .(avg = mean(rating), n = .N), by = year][n >= 30]
-    pl(ggplot(d, aes(year, avg, text = paste0(year, ": ", round(avg, 2)))) +
-         geom_line(colour = COL$orange, linewidth = 1) + geom_smooth(se = FALSE, colour = COL$navy, linewidth = .6) +
+    pl(ggplot(d, aes(year, avg)) +
+         geom_line(colour = COL$orange, linewidth = 1) +
+         geom_point(aes(text = paste0(year, ": ", round(avg, 2), " (n = ", n, ")")),
+                    colour = COL$orange, size = 1.5) +
+         geom_smooth(method = "loess", formula = y ~ x, se = FALSE,
+                     colour = COL$navy, linewidth = 1) +
          labs(x = "Release year", y = "Average rating") + theme_cine(), "text")
   })
 
@@ -600,13 +609,15 @@ server <- function(input, output, session) {
   })
   output$p_roc <- renderPlotly({
     d <- eval_res()$topn
-    pl(ggplot(d, aes(FPR, TPR, colour = Algorithm, text = paste0(Algorithm, " (top-", n, ")"))) +
+    pl(ggplot(d, aes(FPR, TPR, colour = Algorithm, group = Algorithm,
+                     text = paste0(Algorithm, " (top-", n, ")"))) +
          geom_line() + geom_point() + geom_abline(linetype = 2, colour = "grey60") +
          labs(x = "False positive rate", y = "True positive rate") + theme_cine(), "text")
   })
   output$p_pr <- renderPlotly({
     d <- eval_res()$topn
-    pl(ggplot(d, aes(recall, precision, colour = Algorithm, text = paste0(Algorithm, " (top-", n, ")"))) +
+    pl(ggplot(d, aes(recall, precision, colour = Algorithm, group = Algorithm,
+                     text = paste0(Algorithm, " (top-", n, ")"))) +
          geom_line() + geom_point() +
          labs(x = "Recall", y = "Precision") + theme_cine(), "text")
   })
